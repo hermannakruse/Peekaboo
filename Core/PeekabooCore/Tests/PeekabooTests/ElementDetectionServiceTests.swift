@@ -491,7 +491,10 @@ struct ElementClassifierTests {
         #expect(!ElementClassifier.roleIsActionable("AXGroup"))
         #expect(ElementClassifier.shouldLookupActions(for: "AXGroup"))
         #expect(ElementClassifier.shouldLookupActions(for: "AXImage"))
-        #expect(!ElementClassifier.shouldLookupActions(for: "AXStaticText"))
+        // Catalyst/UIKit rows can be AXStaticText elements that advertise AXPress, so they get the
+        // action lookup, but static text is still not actionable by role alone.
+        #expect(ElementClassifier.shouldLookupActions(for: "AXStaticText"))
+        #expect(!ElementClassifier.roleIsActionable("AXStaticText"))
         #expect(ElementClassifier.supportsValueMetadata(for: "AXSlider"))
         #expect(ElementClassifier.supportsValueMetadata(for: "AXDateField"))
         #expect(!ElementClassifier.supportsValueMetadata(for: "AXStaticText"))

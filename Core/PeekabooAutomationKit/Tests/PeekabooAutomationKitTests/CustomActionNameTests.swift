@@ -1,6 +1,6 @@
 import PeekabooFoundation
 import Testing
-@testable import PeekabooAutomationKit
+@testable @_spi(Testing) import PeekabooAutomationKit
 
 /// UIKit and Catalyst apps advertise custom accessibility actions as
 /// `Name:<title>\nTarget:0x0\nSelector:(null)`, not as `AX...` names, while users only know the title
@@ -127,5 +127,39 @@ struct CustomActionNameTests {
 
         #expect(element.performedActions == [Self.moreControls])
         #expect(result.actionName == Self.moreControls)
+    }
+
+    // MARK: Static text action lookup
+
+    // Catalyst sidebar rows are bare AXStaticText that advertise AXPress. They need the action lookup to become
+    // actionable, but static text must stay non-actionable by role alone (plain labels are not clickable).
+
+    @Test
+    func `static text is looked up for AXPress but is not actionable by role alone`() {
+        #expect(ElementClassifier.shouldLookupActions(for: "AXStaticText"))
+        #expect(ElementClassifier.shouldLookupActions(for: "axstatictext"))
+        #expect(!ElementClassifier.roleIsActionable("AXStaticText"))
+    }
+
+    @Test
+    func `action lookup stays limited to container and text roles`() {
+        for role in ["AXGroup", "AXImage", "AXCell", "AXRow", "AXOutlineItem", "AXStaticText"] {
+            #expect(ElementClassifier.shouldLookupActions(for: role), "\(role) should be looked up")
+        }
+        for role in ["AXWindow", "AXScrollArea", "AXToolbar", "AXSplitGroup", "AXTable", "AXList", "AXUnknown"] {
+            #expect(!ElementClassifier.shouldLookupActions(for: role), "\(role) should not be looked up")
+        }
+    }
+
+    /// The detached worker has its own copy of the role set; a drift would make `see` results depend on the code path.
+    @Test
+    func `detached observation worker and classifier look up actions for the same roles`() {
+        let classifierRoles = Set(
+            ["AXGroup", "AXImage", "AXCell", "AXRow", "AXOutlineItem", "AXStaticText", "AXButton", "AXWindow"]
+                .filter { ElementClassifier.shouldLookupActions(for: $0) }
+                .map { $0.lowercased() })
+
+        #expect(DetachedAXObservationWorker.actionLookupRoles == classifierRoles)
+        #expect(DetachedAXObservationWorker.actionLookupRoles.contains("axstatictext"))
     }
 }

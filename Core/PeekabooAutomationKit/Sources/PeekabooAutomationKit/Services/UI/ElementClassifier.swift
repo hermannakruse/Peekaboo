@@ -48,8 +48,11 @@ import PeekabooFoundation
         "axslider", "axtab",
     ]
     /// AXPress lookup is expensive. Keep it to container-ish roles where Chromium/Tauri can hide clickable content.
+    /// `axstatictext` is included because Catalyst/UIKit sidebar rows (the room list in Apple's Home app) are bare
+    /// `AXStaticText` elements that still advertise `AXPress`; without the lookup `see` reports them non-actionable.
+    /// Cost: one extra action-name round trip per static text element (not measured on large trees).
     private static let supportedActionLookupRoles: Set<String> = [
-        "axgroup", "aximage", "axcell", "axrow", "axoutlineitem",
+        "axgroup", "aximage", "axcell", "axrow", "axoutlineitem", "axstatictext",
     ]
     private static let keyboardShortcutRoles: Set<String> = [
         "axbutton", "axpopupbutton", "axcheckbox", "axradiobutton",

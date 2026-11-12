@@ -128,8 +128,10 @@ enum DetachedAXObservationWorker {
         "axbutton", "axpopupbutton", "axtextfield", "axtextarea", "axsearchfield", "axsecuretextfield",
         "axlink", "axweblink", "axcheckbox", "axradiobutton", "axmenuitem", "axcombobox", "axslider", "axtab",
     ]
-    private static let actionLookupRoles: Set<String> = [
-        "axgroup", "aximage", "axcell", "axrow", "axoutlineitem",
+    /// Must match `ElementClassifier.shouldLookupActions`; includes static text because Catalyst rows advertise
+    /// `AXPress` on a bare `AXStaticText` (see the classifier for the reasoning and the cost).
+    static let actionLookupRoles: Set<String> = [
+        "axgroup", "aximage", "axcell", "axrow", "axoutlineitem", "axstatictext",
     ]
 
     static var descriptorAttributeCount: Int {
