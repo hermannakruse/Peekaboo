@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Let `action` (CLI and MCP) invoke UIKit and Mac Catalyst custom accessibility actions by their title, for example `peekaboo action "More Controls" --on <id>`, instead of refusing them as `Invalid action name`. The title is matched exactly against the `Name:` line of the actions the element advertises, an ambiguous title is refused with the full names, and anything the element does not advertise is still refused before dispatch.
+
 ## 4.9.8 - 2026-11-05
 
 **Highlights:** Select files in Open panels with `dialog file` and stop typing filenames into Search; keep exact-window clicks and `window focus` working when another running app shares the target's name; find exact windows that an app exposes only through its focused or main window; make `window focus` fall back to Accessibility when macOS declines activation; and start MCP and Agent runtimes when another process owns the capture lane without a Bridge.
