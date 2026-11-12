@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Let `action` (CLI and MCP) invoke UIKit and Mac Catalyst custom accessibility actions by their title, for example `peekaboo action "More Controls" --on <id>`, instead of refusing them as `Invalid action name`. The title is matched exactly against the `Name:` line of the actions the element advertises, an ambiguous title is refused with the full names, a title that reads as a background-safe action (`Increment`, `Decrement`) is not mapped to a custom action and needs its full advertised name under foreground consent, and anything the element does not advertise is still refused before dispatch.
+- Let `action` (CLI and MCP) invoke UIKit and Mac Catalyst custom accessibility actions by their title, for example `peekaboo action "More Controls" --on <id> --foreground` (custom actions need foreground consent; MCP: `--allow-foreground`), instead of refusing them as `Invalid action name`. The title is matched exactly against the `Name:` line of the actions the element advertises, an ambiguous title is refused with the full names, a title that reads as a background-safe action (`Increment`, `Decrement`) is not mapped to a custom action and needs its full advertised name under foreground consent, and anything the element does not advertise is still refused before dispatch.
 
 ## 4.9.8 - 2026-11-05
 
