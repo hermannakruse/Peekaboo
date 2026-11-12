@@ -19,6 +19,9 @@ UIKit and Mac Catalyst apps advertise their custom accessibility actions as
 `peekaboo action "More Controls" --on "$ELEMENT_ID"`, the panel Apple's Home app offers on accessory tiles) and Peekaboo invokes the element's action whose `Name:` line
 matches it exactly; case and prefixes are not folded. The full advertised string is accepted as well. If several
 actions on the element share a title, the request is refused as ambiguous and lists the full names to choose from.
+A custom action is never background-safe: a title that reads as a background-safe built-in (`Increment`,
+`Decrement`, with or without `AX`, any case) is not mapped to a custom action of that title. Pass its full advertised
+name with `--foreground` (MCP: with foreground authorization) instead. A real `AXIncrement` keeps its exact name.
 A name or title the element does not advertise is refused before anything is invoked.
 
 Use `--app`, `--pid`, `--window-id`, `--window-title`, or `--window-index` to resolve the intended target without

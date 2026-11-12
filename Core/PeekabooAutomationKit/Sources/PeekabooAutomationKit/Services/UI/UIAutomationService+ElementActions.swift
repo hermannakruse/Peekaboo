@@ -522,6 +522,9 @@ extension UIAutomationService: ElementActionAutomationServiceProtocol {
     /// - A custom-action title such as `More Controls` is mapped to the single advertised action whose
     ///   `Name:` line equals it exactly (no prefix or case-insensitive matching).
     /// - A title shared by several advertised actions is refused as ambiguous; the caller must pass the full name.
+    /// - A title that reads as a background-safe built-in (`Increment`, `AXDecrement`, any case) is never mapped to a
+    ///   custom action: the full name is classified differently, so the caller passes it with foreground consent.
+    ///   A real `AXIncrement` the element advertises keeps its exact name.
     /// - A plain AX-style name that is not advertised is returned unchanged, so the caller reports the usual
     ///   "not supported" error with the advertised list.
     /// - Anything else that is not advertised is refused as an invalid action name.
@@ -538,6 +541,15 @@ extension UIAutomationService: ElementActionAutomationServiceProtocol {
                     titleMatches.map { "'\($0)'" }.joined(separator: ", ") + ".")
         }
         if let match = titleMatches.first {
+            // CLI and MCP decide foreground consent on the requested string, before this mapping. A title that
+            // reads as a background-safe built-in (`Increment`, `AXDecrement`) must not turn into a custom
+            // handler, whose full name needs consent: the caller passes the full name under that consent.
+            guard AccessibilityActionPolicy.requiresForegroundConsent(requested) else {
+                throw PeekabooError.invalidInput(
+                    "Action '\(requested)' is also the name of a background-safe action, so it is not mapped to " +
+                        "the custom action of that title. Pass the full advertised name with foreground " +
+                        "consent instead: '\(match)'.")
+            }
             return match
         }
         guard Self.isStandardActionName(requested) else {

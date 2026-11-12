@@ -115,6 +115,86 @@ struct CustomActionNameTests {
         #expect(try UIAutomationService.resolveActionName(second, advertised: [first, second]) == second)
     }
 
+    // MARK: Foreground consent is decided on the action that is dispatched
+
+    /// CLI (`ActionCommand.validateForegroundConsent`) and MCP (`MCPToolExecutionPolicy.actionViolation`) classify the
+    /// requested string with `AccessibilityActionPolicy` before this resolution runs. A custom action titled
+    /// "Increment" must therefore never be reachable through the background-safe name "increment": its resolved
+    /// full name is unclassified and needs foreground consent, so the mapping is refused.
+    @Test(arguments: [
+        "Increment",
+        "increment",
+        "INCREMENT",
+        " Increment ",
+        "Decrement",
+        "decrement",
+        "AXIncrement",
+        "axdecrement",
+    ])
+    func `a custom action titled like a background-safe action is not reachable by its title`(requested: String) throws {
+        let trimmed = requested.trimmingCharacters(in: .whitespaces)
+        let custom = "Name:\(trimmed)\nTarget:0x0\nSelector:(null)"
+        #expect(AccessibilityActionPolicy.classification(requested) == .backgroundSafe)
+        #expect(AccessibilityActionPolicy.classification(custom) == .unclassified)
+
+        #expect(throws: PeekabooError.self) {
+            try UIAutomationService.resolveActionName(requested, advertised: [custom])
+        }
+        // The full advertised name is still accepted; the caller classifies it as unclassified, so --foreground
+        // (CLI) or allow-foreground (MCP) is required.
+        #expect(try UIAutomationService.resolveActionName(custom, advertised: [custom]) == custom)
+    }
+
+    @Test
+    func `the refusal for a background-safe title names the full advertised action`() {
+        let custom = "Name:Increment\nTarget:0x0\nSelector:(null)"
+
+        do {
+            _ = try UIAutomationService.resolveActionName("Increment", advertised: [custom])
+            Issue.record("Expected a refusal")
+        } catch let PeekabooError.invalidInput(message) {
+            #expect(message.contains("foreground"))
+            #expect(message.contains("Target:0x0"))
+        } catch {
+            Issue.record("Unexpected error \(error)")
+        }
+    }
+
+    /// The element advertises the real `AXIncrement` and also a custom action titled "Increment": the built-in keeps
+    /// its exact name, the plain title is refused (never silently the custom one), and the custom one needs its
+    /// full name.
+    @Test
+    func `a real AXIncrement wins and a custom Increment needs its full name`() throws {
+        let custom = "Name:Increment\nTarget:0x0\nSelector:(null)"
+        let advertised = ["AXIncrement", "AXDecrement", custom]
+
+        #expect(try UIAutomationService.resolveActionName("AXIncrement", advertised: advertised) == "AXIncrement")
+        #expect(throws: PeekabooError.self) {
+            try UIAutomationService.resolveActionName("Increment", advertised: advertised)
+        }
+        #expect(try UIAutomationService.resolveActionName(custom, advertised: advertised) == custom)
+    }
+
+    /// Invariant over everything that resolves: the consent decision made on the request is never weaker than the
+    /// one the dispatched action would get.
+    @Test(arguments: ["More Controls", "Increment", "AXIncrement", "Decrement", "Press", "AXPress", "Open", "Dup"])
+    func `resolution never lowers the foreground consent requirement`(requested: String) {
+        let advertised = [
+            "AXIncrement", "AXPress",
+            Self.moreControls,
+            "Name:Increment\nTarget:0x0\nSelector:(null)",
+            "Name:Decrement\nTarget:0x0\nSelector:(null)",
+            "Name:Press\nTarget:0x0\nSelector:(null)",
+            "Name:Open\nTarget:0x0\nSelector:(null)",
+        ]
+        guard let resolved = try? UIAutomationService.resolveActionName(requested, advertised: advertised) else {
+            return
+        }
+        let requestedNeedsConsent = AccessibilityActionPolicy.requiresForegroundConsent(requested)
+        let resolvedNeedsConsent = AccessibilityActionPolicy.requiresForegroundConsent(resolved)
+        #expect(requestedNeedsConsent || !resolvedNeedsConsent)
+    }
+
     // MARK: End to end with the action driver
 
     @MainActor
